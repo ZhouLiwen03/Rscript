@@ -1,0 +1,36 @@
+library(stringi)
+library(stringr)
+
+char_string <- "input your DNA fragment sequence"
+char_string <- toupper(char_string)
+##generate the reverse strand in case you have to search the pattern in the reverse strand
+split_sequence <- strsplit(char_string,NULL)
+rev_sequence <- list(n=length(split_sequence[[1]]))
+for (i in 1:length(split_sequence[[1]])) {
+  rev_sequence[i] <- ifelse(split_sequence[[1]][i]=="A","T",ifelse(split_sequence[[1]][i]=="T","A",ifelse(split_sequence[[1]][i]=="G","C","G")))
+}
+rev_sequence <- rev(rev_sequence)
+raw_rev_sequence <- paste(rev_sequence,collapse="")
+
+# search for MS2v5 and v6 pattern for example
+sites_v6 <-  stri_locate_all(char_string,regex = "(?=(A[ATGC]{2}A[TCGA][CT]A))")[[1]][,1]
+output_files <- data.frame(matrix(nrow=length(sites_v6),ncol = 2))
+colnames(output_files) <- c("name","sequence")
+for (i in 1: length(sites_v6)) {
+  stem_sequence_v6 <- substr(char_string, sites_v6[i], sites_v6[i]+8)
+  stem_sequence_v6_long <- substr(char_string, sites_v6[i]-4, sites_v6[i]+12)
+  split_stem_sequence_v6 <- strsplit(stem_sequence_v6,NULL)
+  rev_split_stem_sequence_v6 <- list(n=length(split_stem_sequence_v6[[1]]))
+  for (j in 1:length(split_stem_sequence_v6[[1]])) {
+    rev_split_stem_sequence_v6[j] <- ifelse(split_stem_sequence_v6[[1]][j]=="A","T",ifelse(split_stem_sequence_v6[[1]][j]=="T","A",ifelse(split_stem_sequence_v6[[1]][j]=="G","C","G")))
+  }
+  raw_rev_split_stem_sequence_v6 <- paste(rev_split_stem_sequence_v6,collapse="")
+  if (split_stem_sequence_v6[[1]][8]==substr(raw_rev_split_stem_sequence_v6,3,3) && split_stem_sequence_v6[[1]][9]==substr(raw_rev_split_stem_sequence_v6,2,2) ) {
+    print(paste(stem_sequence_v6,"@", sites_v6[i],sep = " "))
+    output_files[i,2] <- stem_sequence_v6_long
+    }
+  }
+output_files <- output_files[which(output_files$sequence!= "NA"),]
+output_files$name <- paste("No.",seq(1,nrow(output_files),1),sep = "")
+write.table(output_files,file ="input your save file location",quote = F,sep = "\t",row.names = F,col.names = F)
+##import the saved file to snapgene as primers, then you will get the annotation.
